@@ -8,44 +8,78 @@ type Note = {
 export default function App() {
   const [notes, setNotes] = useState<Note[]>([])
   const [content, setContent] = useState('')
-
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const loadNotes = async () => {
+    const res = await fetch('http://localhost:8080/notes')
+    const data: Note[] = await res.json()
+    setNotes(data)
+  }
 
   useEffect(() => {
-    fetch('http://localhost:8080/notes')
-      .then((res) => res.json())
-      .then((data: Note[]) => setNotes(data))
+    loadNotes()
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    await fetch('http://localhost:8080/notes', {
-      method: 'POST',
+
+    const url =
+      editingId !== null
+        ? `http://localhost:8080/notes/${editingId}`
+        : 'http://localhost:8080/notes'
+
+    const method = editingId !== null ? 'PUT' : 'POST'
+
+    const res = await fetch(url, {
+      method,
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ content }),
     })
 
-    setContent('')
-  }
+    if (!res.ok) {
+      console.error('Request failed')
+      return
+    }
 
+    setEditingId(null)
+    setContent('')
+    await loadNotes()
+  }
   const handleDelete = async (id: number) => {
     await fetch(`http://localhost:8080/notes/${id}`, {
       method: 'DELETE',
     })
+    await loadNotes()
   }
 
   return <div>
     <h1>Notes</h1>
     <form onSubmit={handleSubmit}>
       <textarea value={content} placeholder="Note content" onChange={(e) => setContent(e.target.value)}></textarea>
-      <button type='submit'>Create a Note</button>
+      <button type='submit'>
+        {editingId !== null ? 'Update Note' : 'Create a Note'}
+      </button>
     </form>
+    <button onClick={() => {
+      setEditingId(null)
+      setContent('')
+    }}
+    >
+      Back
+    </button>
     <ul>
       {
         notes.map((note) =>
-          <div>
-            <li key={note.id}>{note.id} - {note.content}</li>
+          <div key={note.id}>
+            <li>{note.id} - {note.content}</li>
+            <button onClick={() => {
+              setEditingId(note.id)
+              setContent(note.content)
+            }}
+            >
+              Edit
+            </button>
             <button onClick={() => handleDelete(note.id)}>Delete</button>
           </div>
         )
@@ -53,4 +87,3 @@ export default function App() {
     </ul>
   </div>
 }
-
