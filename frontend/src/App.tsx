@@ -1,89 +1,30 @@
-import { useEffect, useState } from "react";
-
-type Note = {
-  id: number;
-  content: string;
-}
+import { BrowserRouter, Link, Navigate, Route, Routes } from "react-router-dom";
+import NotesListPage from "./pages/NotesListPage";
+import CreateNotePage from "./pages/CreateNotePage";
+import NoteDetailsPage from "./pages/NoteDetailsPage";
 
 export default function App() {
-  const [notes, setNotes] = useState<Note[]>([])
-  const [content, setContent] = useState('')
-  const [editingId, setEditingId] = useState<number | null>(null)
-  const loadNotes = async () => {
-    const res = await fetch('http://localhost:8080/notes')
-    const data: Note[] = await res.json()
-    setNotes(data)
-  }
-
-  useEffect(() => {
-    loadNotes()
-  }, [])
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    const url =
-      editingId !== null
-        ? `http://localhost:8080/notes/${editingId}`
-        : 'http://localhost:8080/notes'
-
-    const method = editingId !== null ? 'PUT' : 'POST'
-
-    const res = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ content }),
-    })
-
-    if (!res.ok) {
-      console.error('Request failed')
-      return
-    }
-
-    setEditingId(null)
-    setContent('')
-    await loadNotes()
-  }
-  const handleDelete = async (id: number) => {
-    await fetch(`http://localhost:8080/notes/${id}`, {
-      method: 'DELETE',
-    })
-    await loadNotes()
-  }
-
-  return <div>
-    <h1>Notes</h1>
-    <form onSubmit={handleSubmit}>
-      <textarea value={content} placeholder="Note content" onChange={(e) => setContent(e.target.value)}></textarea>
-      <button type='submit'>
-        {editingId !== null ? 'Update Note' : 'Create a Note'}
-      </button>
-    </form>
-    <button onClick={() => {
-      setEditingId(null)
-      setContent('')
-    }}
-    >
-      Back
-    </button>
-    <ul>
-      {
-        notes.map((note) =>
-          <div key={note.id}>
-            <li>{note.id} - {note.content}</li>
-            <button onClick={() => {
-              setEditingId(note.id)
-              setContent(note.content)
-            }}
-            >
-              Edit
-            </button>
-            <button onClick={() => handleDelete(note.id)}>Delete</button>
-          </div>
-        )
-      }
-    </ul>
-  </div>
+  return <BrowserRouter>
+    <div className="min-h-screen bg-stone-900 text-stone-100">
+      <nav className="mx-auto flex max-w-4xl items-center justify-between border-b border-stone-300 px-6 py-4">
+        <h1 className="text-xl font-semibold tracking-tight">Notes App</h1>
+        <div className="flex gap-4 text-sm font-medium">
+          <Link to='/notes' className="rounded-md px-3 py-2 transition hover:bg-stone-700">
+            All Notes
+          </Link>
+          <Link to='/notes/create' className="rounded-md px-3 py-2 transition hover:bg-stone-700">
+            Create Note
+          </Link>
+        </div>
+      </nav>
+      <main className="mx-auto max-w-4xl px-6 py-8">
+        <Routes>
+          <Route path='/' element={<Navigate to='/notes' replace />} />
+          <Route path='/notes' element={<NotesListPage />} />
+          <Route path='/notes/create' element={<CreateNotePage />} />
+          <Route path='/notes/:id' element={<NoteDetailsPage />} />
+        </Routes>
+      </main>
+    </div>
+  </BrowserRouter>
 }
